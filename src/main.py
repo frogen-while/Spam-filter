@@ -1,31 +1,32 @@
 import re
 import json
-import os
-def formatting(word, urls):
+
+def format_word(word: str, urls: int) -> str:
     if "http" in word or "https" in word or "www" in word:
-        urls[0] += 1  
+        urls += 1  
         return word.replace("http://", "").replace("https://", "").replace("www.", "").split('/')[0]
     word = word.lower()
     word = word.strip('\'"')
     word = re.sub(r'[()\?\!\:\.\>\<\-\'\\d]', '', word)
     return word
 
-def find_spam(massage):
+def find_spam(message: str) -> int:
+    score = None
     try:
         with open('bad.json') as f:
             bad_words = json.loads(f.read())
         with open('good.json') as f:
             good_words = json.loads(f.read())
-        with open(massage, 'r') as f:
-            massage = f.read()
+        with open(message, 'r') as f:
+            message = f.read()
         with open('spammers_domains.json', 'r') as f:
             spammers_domains = json.loads(f.read())
 
-        urls = [0] 
+        urls = 0
         spamicities = []
-        for word in massage.split():
+        for word in message.split():
             try:
-                word = formatting(word, urls)
+                word = format_word(word, urls)
                 if word in spammers_domains:
                     return 1
                 try:
@@ -59,29 +60,19 @@ def find_spam(massage):
 
         score = prd_spamicity_bad / (prd_spamicity_bad + prd_spamicity_good)
 
-        if urls[0] > 0:
+        if urls > 0:
             score += 0.1
-        return score
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return -1
 
-    except FileNotFoundError as e:
-        print(f"File not found: {e}")
-        return None
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-        return None
-
-for i in range(1, len(os.listdir("massages")) + 1):
-
-    score = find_spam(f"massages/msg{i}.txt")
-    if score > 0.1005:
-        print(score)
-        print(f"The file msg{i}.txt is spam")
+    if score is None:
+        return -1
+    elif score > 0.9:
+        return 1
     else:
-        print(score)
-        print(f"The file msg{i}.txt is not spam")
-    print("-------------------------------------------------\n")
-
-
+        return 0
+    
 
 
 
